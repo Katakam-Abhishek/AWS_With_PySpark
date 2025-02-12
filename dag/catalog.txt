@@ -1,0 +1,63 @@
+from airflow.operators.python import PythonOperator
+    The PythonOperator in Apache Airflow is used to execute Python functions as tasks within your Directed Acyclic Graph (DAG).
+    It allows you to run Python code as part of your workflow, where the Python function you specify gets executed when the task is triggered.
+
+from airflow.operators.dummy_operator import DummyOperator
+    The DummyOperator in Apache Airflow is a placeholder operator that does nothing when executed. 
+    It's often used as a "dummy" task in workflows for various purposes, such as creating task dependencies or grouping tasks without performing any actual work.
+
+    This can be useful for:
+        Organizing your DAG and task structure.
+        Creating conditional branches in workflows.
+        For testing or template purposes where you don't want to perform any action.
+
+from airflow.operators.python_operator import BranchPythonOperator
+    The BranchPythonOperator in Apache Airflow is used to dynamically decide which task(s) to execute based on the output of a Python function. 
+    This is typically used in scenarios where you want to create conditional branching in your DAG based on specific logic 
+    (e.g., run one task or another depending on the outcome of some condition).
+
+from airflow.providers.amazon.aws.operators.glue import GlueJobOperator
+    The GlueJobOperator in Apache Airflow is used to trigger AWS Glue jobs from within an Airflow DAG. 
+    AWS Glue is a fully managed ETL (Extract, Transform, Load) service that helps you prepare and load data for analytics. 
+    This operator allows you to execute Glue jobs, which are typically used to process data from various sources and perform transformations or 
+    load the data into data warehouses like Amazon Redshift.
+
+
+from airflow.models import Variable
+    The Variable class in Apache Airflow is used to store and retrieve key-value pairs that can be accessed across tasks and DAGs.
+    It acts as a centralized place for storing configuration settings, credentials, or 
+    other dynamic values that might need to be accessed during task execution. 
+    Variables can be set through the Airflow UI, the CLI, or programmatically within your DAGs.
+
+
+'depends_on_past': False,
+    This means the task can run independently of whether the task from the previous DAG run succeeded or failed. 
+    It will not wait for the success of the task in the previous run and will execute regardless of its past state.
+
+depends_on_past=True: This means that the task will only run if the corresponding task from the previous DAG run 
+    (i.e., the same task in the previous execution cycle) has succeeded. This is useful when tasks are dependent on the results of the previous run (e.g., processing data sequentially).
+
+
+catch: Refers to Airflow's behavior when a DAG has been paused, disabled, or hasn't run for some reason, 
+    and it needs to "catch up" on all the missed runs. By default, Airflow will attempt to run tasks for all the previous execution dates that were missed, 
+    up to the current date. This can cause a large number of tasks to be executed in a short time.
+
+    - Catchup=True (default behavior): If a DAG is paused or has missed several runs, it will automatically execute all the missed intervals when it becomes active again, 
+            running them sequentially (or concurrently depending on the task concurrency and scheduler settings).
+
+    -Catchup=False: This will prevent the DAG from backfilling and will only run the task for the most recent scheduled interval, ignoring any missed executions.
+
+    Example: If you have a daily DAG that hasn't run for 3 days and you enable it again, with catchup=True, 
+        Airflow will run the DAG for those 3 previous days. If catchup=False, it will only run the DAG for the current day.
+
+Backfill: Refers  to the process of executing tasks for past dates when a DAG is first triggered or when the DAG is resumed after a pause. 
+    It's a related concept but a bit broader in its meaning: backfilling is essentially "catching up" on missed tasks for a range of execution dates.
+
+
+Order of our DAG taks runflow
+        start_task >> stg_files_check
+        stg_files_check >> process_etl >> glue_job >> complete_etl
+        stg_files_check >> process_etl >> create_emr_task >> run_spark_job_task >> terminate_emr_task >> complete_etl
+        stg_files_check >> process_etl >> jobs_create_json >> run_now >> complete_etl
+        stg_files_check >> complete_etl
+        complete_etl >> notify_user_task >> end_task
